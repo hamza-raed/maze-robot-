@@ -23,10 +23,6 @@ int motorL1=11;//forward
 int motorL2=7;
 int ENB=10;
 
-unsigned long newtime = 0;
-unsigned long oldtime = 0;
-float dt = 0;
-
 int target;
 double angle = 0;
 float error ;
@@ -35,8 +31,29 @@ float error ;
 int basespeed=100;
 
 double baiz=-0.019687;
+//PID 
 
 
+float kp = 5;
+float kd = 0.05;
+float ki = 0;
+
+float i;
+float d;
+unsigned long newtime = 0;
+unsigned long oldtime = 0;
+float dt = 0;
+
+float straightTarget;
+float straightError;
+float straightCorrection;
+
+bool straightMode = false;
+float lastStraightError = 0;
+
+
+int rightspeed;
+int leftspeed;
 
 void setup() {
   Serial.begin(115200);
@@ -72,50 +89,99 @@ void setup() {
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ); 
   Serial.println("START");
   Serial.println("mpu is ready.");
-   oldtime = micros();
-
+  oldtime = micros();
   angle = 0;
 
 }
 
 void loop() {
+  target =90;
+
   newtime = micros();
   dt = (newtime - oldtime) / 1000000.0;
   oldtime = newtime;
 
-  target =90;
   sensors_event_t a, g, t;
   mpu.getEvent(&a, &g, &t);
+
   angle += (g.gyro.z-baiz) * dt;
   float degreez = (angle * 180.0 / PI) ;
-  error =target - degreez;
+  error = target - degreez;
+  
 
-  if (abs(error) <= 5) {
+ if (!straightMode) {
+
+    if (abs(error) <= 1) {
+
+      motormove(0, 0, LOW, LOW, LOW, LOW);
+
+    }
+    else if (degreez < target) {
+
+      motormove(rightspeed, leftspeed, HIGH, LOW, LOW, HIGH);
+
+    }
+    else if (degreez > target) {
+
+      motormove(rightspeed, leftspeed, LOW, HIGH, HIGH, LOW);
+
+    }
+  }
+  if (abs(error) <= 1 && !straightMode) {
 
     motormove(0, 0, LOW, LOW, LOW, LOW);
 
+    straightTarget = degreez;
+    straightMode = true;
 
+    i = 0;
+    lastStraightError = 0;
+
+  
   }
-  else if (degreez < target) {
+  if (straightMode) {
+    
 
-    motormove(basespeed, basespeed, HIGH, LOW, LOW, HIGH);
+    Serial.print(straightTarget);
+    straightError = straightTarget - degreez;
 
+    i += straightError * dt;
+
+    d = (straightError - lastStraightError) / dt;
+
+    straightCorrection = kp * straightError + ki * i + kd * d;
+
+    lastStraightError = straightError;
+
+    rightspeed = basespeed + straightCorrection;
+    leftspeed  = basespeed - straightCorrection;
+
+    rightspeed = constrain(rightspeed, 100, 150);
+    leftspeed  = constrain(leftspeed, 100, 150);
+    motormove(rightspeed, leftspeed, HIGH, LOW, HIGH, LOW);
+    Serial.print(" target: ");
+    Serial.print(straightTarget);
+
+    Serial.print(" error: ");
+    Serial.print(straightError);
+
+    Serial.print(" correction: ");
+    Serial.print(straightCorrection);
+
+    Serial.print(" R: ");
+    Serial.print(rightspeed);
+
+    Serial.print(" L: ");
+    Serial.println(leftspeed);
   }
-  else if (degreez > target ){
-    motormove(basespeed, basespeed, LOW, HIGH, HIGH, LOW);
+  Serial.print("gyro: ");
+  Serial.print(g.gyro.z, 6);
 
-  }
-  else {
-    motormove(basespeed, basespeed, HIGH, LOW, LOW, HIGH);
-  }
+  Serial.print("  dt: ");
+  Serial.print(dt, 6);
 
-
-  Serial.print("gyroZ: ");
-  Serial.print(g.gyro.z);
-
-  Serial.print("   degree: ");
-  Serial.println(degreez);
-
+  Serial.print("  angle: ");
+  Serial.println(degreez, 2);
 
 }
 
