@@ -55,6 +55,7 @@ float lastStraightError = 0;
 int rightspeed; 
 int leftspeed; 
 
+int turnspeed=100;
  
 bool turning = false; 
  
@@ -151,13 +152,13 @@ void loop() {
  
     else if (degreez < target) { 
  
-      motormove(basespeed, basespeed, HIGH, LOW, LOW, HIGH); 
+      motormove(turnspeed, turnspeed, HIGH, LOW, LOW, HIGH); 
  
     } 
  
     else if (degreez > target) { 
  
-      motormove(basespeed, basespeed, LOW, HIGH, HIGH, LOW); 
+      motormove(turnspeed, turnspeed, LOW, HIGH, HIGH, LOW); 
     } 
   } 
  
