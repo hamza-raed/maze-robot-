@@ -94,22 +94,20 @@ void setup() {
 
 }
 
-void loop() {
-  target =90;
-
+void loop() {  
   newtime = micros();
   dt = (newtime - oldtime) / 1000000.0;
   oldtime = newtime;
 
+  target =90;
+  
   sensors_event_t a, g, t;
   mpu.getEvent(&a, &g, &t);
-
   angle += (g.gyro.z-baiz) * dt;
   float degreez = (angle * 180.0 / PI) ;
-  error = target - degreez;
-  
+  error =target - degreez;
 
- if (!straightMode) {
+  if (!straightMode) {
 
     if (abs(error) <= 1) {
 
@@ -118,12 +116,12 @@ void loop() {
     }
     else if (degreez < target) {
 
-      motormove(rightspeed, leftspeed, HIGH, LOW, LOW, HIGH);
+      motormove(basespeed, basespeed, HIGH, LOW, LOW, HIGH);
 
     }
     else if (degreez > target) {
 
-      motormove(rightspeed, leftspeed, LOW, HIGH, HIGH, LOW);
+      motormove(basespeed, basespeed, LOW, HIGH, HIGH, LOW);
 
     }
   }
@@ -133,55 +131,35 @@ void loop() {
 
     straightTarget = degreez;
     straightMode = true;
-
     i = 0;
     lastStraightError = 0;
 
   
   }
-  if (straightMode) {
-    
 
-    Serial.print(straightTarget);
-    straightError = straightTarget - degreez;
+if (straightMode) {
+  
+  Serial.print(straightTarget);
+  straightError = straightTarget - degreez;
 
-    i += straightError * dt;
+  i += straightError * dt;
 
-    d = (straightError - lastStraightError) / dt;
+  d = (straightError - lastStraightError) / dt;
 
-    straightCorrection = kp * straightError + ki * i + kd * d;
+  straightCorrection = kp * straightError + ki * i + kd * d;
 
-    lastStraightError = straightError;
+  lastStraightError = straightError;
 
-    rightspeed = basespeed + straightCorrection;
-    leftspeed  = basespeed - straightCorrection;
+  rightspeed = basespeed + straightCorrection;
+  leftspeed  = basespeed - straightCorrection;
 
-    rightspeed = constrain(rightspeed, 100, 150);
-    leftspeed  = constrain(leftspeed, 100, 150);
-    motormove(rightspeed, leftspeed, HIGH, LOW, HIGH, LOW);
-    Serial.print(" target: ");
-    Serial.print(straightTarget);
+  rightspeed = constrain(rightspeed, 100, 150);
+  leftspeed  = constrain(leftspeed, 100, 150);
+  motormove(rightspeed, leftspeed, HIGH, LOW, HIGH, LOW);
 
-    Serial.print(" error: ");
-    Serial.print(straightError);
+}
 
-    Serial.print(" correction: ");
-    Serial.print(straightCorrection);
 
-    Serial.print(" R: ");
-    Serial.print(rightspeed);
-
-    Serial.print(" L: ");
-    Serial.println(leftspeed);
-  }
-  Serial.print("gyro: ");
-  Serial.print(g.gyro.z, 6);
-
-  Serial.print("  dt: ");
-  Serial.print(dt, 6);
-
-  Serial.print("  angle: ");
-  Serial.println(degreez, 2);
 
 }
 
