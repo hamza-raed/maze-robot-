@@ -23,18 +23,29 @@ int motorL1=11;//forward
 int motorL2=7;
 int ENB=10;
 
+
+float Kp=7;
+float Kd=0.03;
+float Ki=0.1;
+
 unsigned long newtime = 0;
 unsigned long oldtime = 0;
 float dt = 0;
+float error ;
+float lasterror ;
+float I;
+float D;
+int correction ;
+
+int rightspeed;
+int leftspeed;
 
 int target;
 double angle = 0;
-float error ;
-
 
 int basespeed=100;
-
 double baiz=-0.019687;
+
 
 
 
@@ -72,23 +83,34 @@ void setup() {
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ); 
   Serial.println("START");
   Serial.println("mpu is ready.");
-   oldtime = micros();
-
+  oldtime = micros();
   angle = 0;
 
 }
 
 void loop() {
+  target =90;
   newtime = micros();
   dt = (newtime - oldtime) / 1000000.0;
   oldtime = newtime;
+  I+=error*dt ;
+  D = error/dt ;
 
-  target =90;
   sensors_event_t a, g, t;
   mpu.getEvent(&a, &g, &t);
+
   angle += (g.gyro.z-baiz) * dt;
   float degreez = (angle * 180.0 / PI) ;
   error =target - degreez;
+  correction =Kp*error+Kd*D+Ki*I;
+
+  rightspeed =basespeed -correction;
+  leftspeed =basespeed +correction ;
+ 
+  rightspeed = constrain(rightspeed, 0, 120);
+  leftspeed = constrain(leftspeed, 0, 120);
+  
+
 
   if (abs(error) <= 5) {
 
@@ -98,23 +120,24 @@ void loop() {
   }
   else if (degreez < target) {
 
-    motormove(basespeed, basespeed, HIGH, LOW, LOW, HIGH);
+    motormove(rightspeed, leftspeed, HIGH, LOW, LOW, HIGH);
 
   }
   else if (degreez > target ){
-    motormove(basespeed, basespeed, LOW, HIGH, HIGH, LOW);
+    motormove(rightspeed, leftspeed, LOW, HIGH, HIGH, LOW);
 
   }
   else {
-    motormove(basespeed, basespeed, HIGH, LOW, LOW, HIGH);
+      motormove(rightspeed, leftspeed, HIGH, LOW, LOW, HIGH);
   }
 
 
-  Serial.print("gyroZ: ");
-  Serial.print(g.gyro.z);
 
-  Serial.print("   degree: ");
-  Serial.println(degreez);
+Serial.print("gyroZ: ");
+Serial.print(g.gyro.z);
+
+Serial.print("   degree: ");
+Serial.println(degreez);
 
 
 }
@@ -130,3 +153,4 @@ void motormove(int RightSpeed, int LeftSpeed, int Rightforward, int Rightbackwar
   analogWrite(ENA, RightSpeed);
   analogWrite(ENB, LeftSpeed);
 }
+
