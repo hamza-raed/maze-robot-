@@ -50,9 +50,3 @@ The project is currently under development.
 * Implement maze-solving algorithms.
 * Improve movement accuracy and reliability.
 * Optimize navigation and path planning.
-
-## Author
-
-Hamza Raed
-
-Mechatronics Engineering Student
